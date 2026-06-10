@@ -1,0 +1,42 @@
+# Runtime state
+.aid/
+!.aid/.gitkeep
+
+# Container artifacts
+.aid/aidhs.sif
+.aid/aidhs.sif.*
+.aid/cache/
+.aid/tmp/
+
+# Generated compose (regenerated on install)
+compose.yml
+
+# Logs (may contain host paths)
+logs/*
+!logs/.gitkeep
+
+# Pipeline outputs (keep structure via .gitkeep)
+output/*
+!output/.gitkeep
+
+# User data (never commit PHI or MRI)
+input/*
+!input/.gitkeep
+!input/README.md
+!input/bids_config.json.example
+!input/dataset_description.json.example
+
+# License and local config (never commit)
+aidhs_license.txt
+jobs/cidur/config.env
+*.env.local
+
+# Demographics with real subject IDs / ages / sex (use *.example templates)
+demographics_file.csv
+jobs/cidur/demographics_file.csv
+jobs/cidur/subjects_list.txt
+
+# OS / editor
+.DS_Store
+*.swp
+*~

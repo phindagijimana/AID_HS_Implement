@@ -1,0 +1,9 @@
+#!/bin/sh
+# Strip Cursor co-author trailers so GitHub does not list cursoragent as a contributor.
+msg_file="${1:?commit message file required}"
+
+if grep -qiE 'Co-authored-by:.*cursor' "$msg_file"; then
+  sed -i '/^Co-authored-by:.*[Cc]ursor/d' "$msg_file"
+fi
+
+exit 0

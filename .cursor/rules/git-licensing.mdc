@@ -1,0 +1,13 @@
+---
+description: Git publishing and Apache licensing standards for this repo
+alwaysApply: true
+---
+
+# Git and licensing
+
+- This repository is licensed under **Apache License 2.0** (`LICENSE`).
+- **Never** add `Co-authored-by: Cursor` or `cursoragent@cursor.com` to commit messages.
+- **Never** run `git commit` from the agent. Leave commits to the user, or use `git commit-tree` only when the user explicitly asks to commit and push.
+- Commits must be authored as **Philbert Ndagijimana** (`philbert_ndagijimana@urmc.rochester.edu`) only.
+- Do not commit secrets: `aidhs_license.txt`, `*.env`, demographics CSVs, or site-specific paths (see `.gitignore`).
+- After clone, run `./scripts/setup-git-hooks.sh` to strip accidental Cursor co-author trailers.

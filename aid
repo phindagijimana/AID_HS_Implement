@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+#
+# AID-HS production CLI
+# Usage: ./aid install | start | stop | logs | status
+#
+set -euo pipefail
+
+AID_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export AID_ROOT
+
+LIB="${AID_ROOT}/lib"
+
+usage() {
+  cat <<EOF
+AID-HS pipeline CLI
+
+Usage:
+  ./aid install [options]     Install container, download models, verify setup
+  ./aid start   [options]     Run prediction/harmonisation (background by default)
+  ./aid stop    [--force]       Stop a running pipeline
+  ./aid logs    [install|run]   Tail installation or run logs
+  ./aid status                  Show install/runtime status
+
+Environment:
+  AID_RUNTIME=docker|singularity|apptainer|auto
+  AID_USE_GPU=auto|yes|no
+  SINGULARITY_CACHEDIR / APPTAINER_CACHEDIR  (if image build runs out of space)
+
+Layout (everything under this directory):
+  aidhs_license.txt    License (required before install)
+  input/               BIDS MRI + demographics CSV
+  output/              Pipeline outputs
+  logs/                install.log, run.log
+  .aid/                Runtime config and Singularity .sif
+
+Documentation: https://aid-hs.readthedocs.io/en/latest/index.html
+Local guide:    ./AID-HS.md
+
+Run './aid <command> --help' for command-specific options.
+EOF
+}
+
+main() {
+  local cmd="${1:-}"
+  shift || true
+
+  case "${cmd}" in
+    install)
+      # shellcheck source=lib/install.sh
+      source "${LIB}/install.sh"
+      cmd_install "$@"
+      ;;
+    start)
+      # shellcheck source=lib/start.sh
+      source "${LIB}/start.sh"
+      cmd_start "$@"
+      ;;
+    stop)
+      # shellcheck source=lib/stop.sh
+      source "${LIB}/stop.sh"
+      cmd_stop "$@"
+      ;;
+    logs)
+      # shellcheck source=lib/logs.sh
+      source "${LIB}/logs.sh"
+      cmd_logs "$@"
+      ;;
+    status)
+      # shellcheck source=lib/logs.sh
+      source "${LIB}/logs.sh"
+      cmd_status "$@"
+      ;;
+    "" | -h | --help | help)
+      usage
+      ;;
+    *)
+      echo "Unknown command: ${cmd}" >&2
+      echo "" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
