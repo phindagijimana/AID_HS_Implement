@@ -29,6 +29,9 @@ input/*
 # License and local config (never commit)
 aidhs_license.txt
 jobs/cidur/config.env
+jobs/urmc_test/config.env
+jobs/urmc_test/demographics_file.csv
+jobs/urmc_test/subjects_list.txt
 *.env.local
 
 # Demographics with real subject IDs / ages / sex (use *.example templates)

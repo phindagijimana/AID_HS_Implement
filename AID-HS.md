@@ -1,6 +1,6 @@
 # AID-HS Installation Guide
 
-> **Production CLI:** This repository includes `./aid` for install/start/stop/logs on Docker (Linux) or Singularity (HPC), with all data in one folder. See [README.md](./README.md).
+> **Production CLI:** This repository includes `./aid` for install/start/stop/logs on Docker (Linux) or Singularity (HPC), with all data in one folder. See [README.md](./README.md) and the full [USER_GUIDE.md](./USER_GUIDE.md).
 
 **Automated and Interpretable Detection of Hippocampal Sclerosis**
 

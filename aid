@@ -35,7 +35,7 @@ Layout (everything under this directory):
   .aid/                Runtime config and Singularity .sif
 
 Documentation: https://aid-hs.readthedocs.io/en/latest/index.html
-Local guide:    ./AID-HS.md
+User guide:    ./USER_GUIDE.md
 
 Run './aid <command> --help' for command-specific options.
 EOF

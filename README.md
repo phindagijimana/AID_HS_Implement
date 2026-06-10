@@ -1,41 +1,60 @@
 # AID-HS Production Pipeline
 
-Self-contained wrapper for [AID-HS](https://aid-hs.readthedocs.io/en/latest/index.html) with a simple CLI. Works on **Linux with Docker** and on **HPC with Singularity/Apptainer**.
+Self-contained wrapper for [AID-HS](https://aid-hs.readthedocs.io/en/latest/index.html) — automated hippocampal sclerosis detection from **3T T1w** MRI. Runs on **Docker** (workstation) or **Apptainer/Singularity** (HPC).
 
-All data, outputs, and the license file live **in this directory** (no external `aidhs_data` path required).
+Everything lives in one directory: license, input, output, container image, and logs.
+
+**Full documentation:** [USER_GUIDE.md](./USER_GUIDE.md) · Official upstream: [AID-HS.md](./AID-HS.md)
+
+---
+
+## Requirements
+
+| Item | Details |
+|------|---------|
+| **License** | [Register with MELD](https://docs.google.com/forms/d/e/1FAIpQLSdPbtraBZ2s0HD1W8qtF11wr_fYVTWZjraED03Rtl2ZjxeRMA/viewform) → save as `aidhs_license.txt` |
+| **Disk** | ~20 GB (container) + ~1 GB (models) |
+| **Data** | BIDS T1w + demographics CSV (age, sex per subject) |
+| **HPC cohort runs** | Snakemake 8+ (Python ≥ 3.11) — see [USER_GUIDE.md](./USER_GUIDE.md#snakemake-cohort-runs) |
+
+---
 
 ## Quick start
 
 ```bash
-# 1. Place your license in the pipeline root
+git clone git@github.com:phindagijimana/AID_HS_Implement.git
+cd AID_HS_Implement
+
+# 1. License + install
 cp /path/from/email/aidhs_license.txt ./aidhs_license.txt
+chmod +x aid lib/*.sh jobs/**/*.sh 2>/dev/null || true
+./aid install --runtime apptainer    # HPC; use --runtime docker on workstation
 
-# 2. Install (auto-detects Docker vs Singularity)
-chmod +x aid lib/*.sh
-./aid install
-
-# 3. Prepare input (BIDS + demographics)
+# 2. One subject (interactive / debug)
 cp demographics_file.csv.example input/demographics_file.csv
-# Edit CSV and add MRI under input/sub-<id>/anat/
+# Add MRI: input/sub-<id>/anat/sub-<id>_T1w.nii.gz
+./aid start -id sub-patient01 -demos input/demographics_file.csv --foreground
 
-# 4. Run pipeline (background)
-./aid start -id sub-patient01 -demos input/demographics_file.csv
-
-# 5. Monitor / stop
-./aid logs
-./aid stop
+# 3. Cohort on Slurm (recommended for multi-subject HPC)
+./aid cohort setup
+# Edit aidhs_py/config/subjects.tsv and demographics_file.csv
+./aid cohort lint
+./aid cohort slurm
+./aid cohort status
 ```
+
+---
 
 ## CLI
 
-| Command | Description |
-|---------|-------------|
-| `./aid install` | Pull/build container, download models, run `pytest` |
-| `./aid start` | Run prediction or harmonisation (background) |
+| Command | Purpose |
+|---------|---------|
+| `./aid install` | Build/pull container, download models, run pytest |
+| `./aid start` | Run one or more subjects (background by default) |
 | `./aid stop` | Stop background job |
-| `./aid logs` | Tail `logs/run.log` (or `logs/install.log`) |
-| `./aid status` | Install state, runtime, PID |
-| `./aid cohort` | Snakemake cohort runs (multi-subject / Slurm) |
+| `./aid logs` | Tail run or install log |
+| `./aid status` | Install state, license, runtime |
+| `./aid cohort` | Snakemake cohort workflow (setup, lint, slurm, status) |
 
 ```bash
 ./aid install --help
@@ -43,132 +62,59 @@ cp demographics_file.csv.example input/demographics_file.csv
 ./aid cohort help
 ```
 
-### Install options
+---
 
-```bash
-./aid install --runtime singularity    # Force HPC backend
-./aid install --runtime docker         # Force Docker
-./aid install --no-gpu                 # Mac / CPU-only
-./aid install --skip-test              # Skip pytest (faster)
-```
+## Which command to use
 
-On HPC, if the image build runs out of disk space in `$HOME`:
+| Goal | Command |
+|------|---------|
+| Test one subject locally | `./aid start -id sub-XXX -demos … --foreground` |
+| Production cohort on Slurm | `./aid cohort slurm` |
+| Per-site batch scripts | `jobs/<site>/submit.sh` — see [USER_GUIDE.md](./USER_GUIDE.md#site-specific-jobs) |
 
-```bash
-export SINGULARITY_CACHEDIR=/scratch/$USER/singularity-cache
-export SINGULARITY_TMPDIR=/scratch/$USER/singularity-tmp
-./aid install --runtime singularity
-```
+---
 
-### Start examples
+## Outputs
 
-```bash
-# Single subject, no harmonisation (Harmo code = noHarmo in CSV)
-./aid start -id sub-patient01 -demos input/demographics_file.csv
-
-# With harmonisation code H1
-./aid start -id sub-patient01 -demos input/demographics_file.csv -harmo_code H1
-
-# Multiple subjects in parallel
-./aid start -ids input/subjects_list.txt -demos input/demographics_file.csv --parallelise
-
-# Harmonisation-only (≥20 controls, same scanner)
-./aid start -ids input/controls_list.txt -demos input/demographics_file.csv \
-  -harmo_code H1 --harmo_only
-
-# Foreground (e.g. interactive debugging)
-./aid start -id sub-test001 -demos input/demographics_file.csv --foreground
-```
-
-## Directory layout
+Reports and figures are written to:
 
 ```text
-AID-HS/                      ← pipeline root (mounted as /data in container)
-├── aid                      ← CLI entrypoint
-├── aidhs_license.txt        ← required license
-├── input/                   ← BIDS MRI, bids_config.json, demographics CSV
-├── output/                  ← symlink/target for reports (AID-HS also writes under input/output/)
-├── logs/
-│   ├── install.log
-│   └── run.log
-├── .aid/
-│   ├── config.env           ← runtime settings after install
-│   └── aidhs.sif            ← Singularity image (HPC only)
-├── compose.yml              ← generated on install (Docker)
-└── lib/                     ← implementation scripts
+output/predictions_reports/<subject_id>/Report_<subject_id>.pdf
 ```
 
-AID-HS writes prediction reports under `output/predictions_reports/<subject>/` (inside the container mount). See [interpret results](https://aid-hs.readthedocs.io/en/latest/interpret_results.html).
+See [official interpret-results docs](https://aid-hs.readthedocs.io/en/latest/interpret_results.html) and [USER_GUIDE.md — Outputs](./USER_GUIDE.md#outputs-and-reports).
 
-## Runtime selection
+---
 
-| Environment | Auto-detect | Force |
-|-------------|-------------|--------|
-| Linux workstation | Docker (if daemon available) | `./aid install --runtime docker` |
-| HPC cluster | Apptainer → Singularity | `./aid install --runtime apptainer` |
+## Layout (minimal)
 
-Set `AID_RUNTIME` in the environment before `install` to persist in `.aid/config.env`.
-
-## Cohort runs (Snakemake / HPC)
-
-For multi-subject cohorts, use **`./aid cohort`** (wraps [`aidhs_py/`](./aidhs_py/README.md)):
-
-```bash
-./aid cohort setup
-./aid cohort subjects          # optional: discover subjects from BIDS
-./aid cohort lint              # dry-run DAG
-./aid cohort slurm             # submit Slurm driver (recommended on HPC)
-./aid cohort status            # per-subject validate/report status
+```text
+AID-HS/
+├── aid                    CLI
+├── aidhs_license.txt      required (gitignored)
+├── input/                 BIDS + demographics
+├── output/                reports + intermediates
+├── aidhs_py/              Snakemake cohort workflow
+├── jobs/                  optional per-site Slurm helpers
+├── .aid/aidhs.sif         container (after install)
+└── logs/
 ```
 
-With a per-cohort config override:
+---
 
-```bash
-./aid cohort slurm --configfile aidhs_py/config/cohorts/cidur.yaml
-```
-
-| Use case | Command |
-|----------|---------|
-| One subject, debug | `./aid start -id sub-001 …` |
-| Cohort / Slurm production | `./aid cohort slurm` |
-
-Legacy per-subject bash jobs remain in [`jobs/cidur/`](./jobs/cidur/) during migration.
-
-## Slurm example (HPC)
-
-```bash
-#!/bin/bash
-#SBATCH --job-name=aidhs
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
-#SBATCH --time=24:00:00
-
-cd /path/to/AID-HS
-export SINGULARITY_CACHEDIR=/scratch/$USER/sing-cache
-
-./aid start -id sub-patient01 -demos input/demographics_file.csv
-# Or run install+start in one batch job on a fresh node:
-# ./aid install --runtime singularity --skip-test
-# ./aid start ...
-```
-
-## Requirements
-
-- **License**: [AID-HS registration](https://docs.google.com/forms/d/e/1FAIpQLSdPbtraBZ2s0HD1W8qtF11wr_fYVTWZjraED03Rtl2ZjxeRMA/viewform) → `aidhs_license.txt`
-- **Disk**: ~20 GB for container image + ~1 GB for models/data
-- **Data**: 3T T1w BIDS; age and sex per subject ([prepare data](https://aid-hs.readthedocs.io/en/latest/prepare_data.html))
-
-## Troubleshooting
+## Troubleshooting (common)
 
 | Problem | Fix |
 |---------|-----|
-| `Not installed` | `./aid install` |
-| License errors | Ensure `aidhs_license.txt` is in pipeline root |
-| HippUnfold killed (~19%) | Increase Docker memory; `./aid stop` then retry |
-| Singularity no space | Set `SINGULARITY_CACHEDIR` / `SINGULARITY_TMPDIR` |
-| Stale run PID | `./aid stop --force` |
+| Not installed | `./aid install` |
+| License error | `aidhs_license.txt` in pipeline root |
+| Out of disk on HPC | `export APPTAINER_CACHEDIR=/scratch/$USER/apptainer-cache` then reinstall |
+| HippUnfold fails ~19% | Request more RAM (64G); see USER_GUIDE |
+| Snakemake not found | `aidhs_py/scripts/setup_env.sh` or Python 3.12 — see USER_GUIDE |
 
-See [AID-HS.md](./AID-HS.md) and [official FAQs](https://aid-hs.readthedocs.io/en/latest/FAQs.html).
+More: [USER_GUIDE.md — Troubleshooting](./USER_GUIDE.md#troubleshooting)
+
+---
 
 ## Citation
 
@@ -176,27 +122,4 @@ Ripart et al. 2024, *Annals of Neurology*. https://doi.org/10.1002/ana.27089
 
 ## License
 
-This repository (CLI wrapper, Slurm helpers, and documentation) is licensed under the
-[Apache License 2.0](LICENSE).
-
-AID-HS itself is a separate software package with its own license terms. Use of AID-HS
-requires a valid `aidhs_license.txt` from the AID-HS authors; that file is not
-redistributed here.
-
-## Publishing to GitHub
-
-Install git hooks once (removes accidental Cursor co-author trailers):
-
-```bash
-./scripts/setup-git-hooks.sh
-```
-
-Initial push (or re-push after a clean history rewrite):
-
-```bash
-git remote add origin git@github.com:phindagijimana/AID_HS_Implement.git
-git branch -M main
-git push -u origin main
-```
-
-Commits should be authored by you only — do not include `Co-authored-by: Cursor` in messages.
+This wrapper is [Apache 2.0](LICENSE). AID-HS itself requires a separate [MELD license](https://aid-hs.readthedocs.io/en/latest/index.html) (`aidhs_license.txt`).
