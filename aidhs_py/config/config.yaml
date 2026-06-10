@@ -1,0 +1,55 @@
+# AID-HS Snakemake orchestration config.
+# Paths may be absolute or relative to aidhs_py/.
+
+# Parent AID-HS pipeline root (contains ./aid, .aid/, input/, output/, license)
+pipeline_root: ".."
+
+# Work tree for sentinels and Snakemake logs (relative to aidhs_py/)
+workflow_root: "."
+
+# Demographics CSV — path relative to pipeline_root unless absolute
+demographics: "config/demographics_file.csv"
+
+# Optional external BIDS root: symlinks input/sub-{sid} before validate
+# Leave empty if subjects already live under pipeline_root/input/
+bids_root: ""
+
+# Subject list: config/subjects.tsv (one ID per line) or inline list below
+subjects_tsv: "config/subjects.tsv"
+subjects: []
+
+# Stage toggles (overridable via --config run_harmonisation=false)
+run_harmonisation: false
+run_validate: true
+skip_segmentation: false
+
+# Harmonisation (cohort-level; requires ≥20 controls in demographics)
+harmo_code: "H1"
+controls_tsv: "config/controls.tsv"
+
+# Container (Apptainer/Singularity image built by ../aid install)
+containers:
+  aidhs: "../.aid/aidhs.sif"
+
+license_file: "../aidhs_license.txt"
+
+# Serialize predict jobs — HippUnfold uses a shared .snakemake lock per output dir
+hippunfold_slots: 1
+
+resources:
+  validate:
+    mem_mb: 2000
+    runtime: 10
+    slurm_partition: general
+  harmonisation:
+    mem_mb: 32000
+    runtime: 240
+    slurm_partition: general
+  predict:
+    mem_mb: 64000
+    runtime: 1440
+    slurm_partition: general
+  predict_only:
+    mem_mb: 16000
+    runtime: 120
+    slurm_partition: general

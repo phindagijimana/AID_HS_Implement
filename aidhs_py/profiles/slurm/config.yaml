@@ -1,0 +1,20 @@
+# Snakemake 8 Slurm executor profile.
+# Install: pip install snakemake-executor-plugin-slurm
+
+executor: slurm
+jobs: 50
+latency-wait: 120
+keep-going: true
+rerun-incomplete: true
+printshellcmds: true
+use-conda: false
+use-singularity: false
+
+default-resources:
+  - mem_mb=4000
+  - runtime=60
+  - slurm_partition=general
+
+# Global resource pool — only one predict job at a time by default
+resources:
+  hippunfold_slots: 1

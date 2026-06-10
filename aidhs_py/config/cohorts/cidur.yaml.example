@@ -1,0 +1,20 @@
+# Per-cohort override. Launch with:
+#   sbatch submit_snakemake.sh --configfile config/cohorts/cidur.yaml
+#
+# Copy to config/cohorts/cidur.yaml and edit (gitignored).
+
+pipeline_root: ".."
+demographics: "config/demographics_file.csv"
+subjects_tsv: "config/subjects.tsv"
+
+# Symlink subjects from external BIDS (set to your site path)
+bids_root: "/path/to/your/BIDS/data_bids"
+
+run_harmonisation: false
+skip_segmentation: false
+
+resources:
+  predict:
+    mem_mb: 64000
+    runtime: 1440
+    slurm_partition: general

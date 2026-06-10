@@ -1,0 +1,37 @@
+"""AID-HS Snakemake orchestration workflow.
+
+Runs cohort-level validation and per-subject prediction via Apptainer,
+using the parent ./aid install (container image + license).
+
+Legacy bash jobs remain in ../jobs/cidur/ for side-by-side comparison.
+"""
+
+configfile: "config/config.yaml"
+
+include: "workflow/rules/common.smk"
+include: "workflow/rules/validate.smk"
+include: "workflow/rules/harmonisation.smk"
+include: "workflow/rules/predict.smk"
+
+
+rule all:
+    input:
+        all_targets(),
+
+
+rule reports_all:
+    """Build all subject PDF reports."""
+    input:
+        [report_target(s) for s in SUBJECTS],
+
+
+rule validate_all:
+    """Run preflight validation for every subject."""
+    input:
+        [validate_flag(s) for s in SUBJECTS],
+
+
+if RUN_HARMONISATION:
+    rule harmonisation_all:
+        input:
+            harmo_flag(),

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # AID-HS production CLI
-# Usage: ./aid install | start | stop | logs | status
+# Usage: ./aid install | start | stop | logs | status | cohort
 #
 set -euo pipefail
 
@@ -20,6 +20,7 @@ Usage:
   ./aid stop    [--force]       Stop a running pipeline
   ./aid logs    [install|run]   Tail installation or run logs
   ./aid status                  Show install/runtime status
+  ./aid cohort <subcommand>     Snakemake cohort runs (setup, lint, slurm, status)
 
 Environment:
   AID_RUNTIME=docker|singularity|apptainer|auto
@@ -69,6 +70,11 @@ main() {
       # shellcheck source=lib/logs.sh
       source "${LIB}/logs.sh"
       cmd_status "$@"
+      ;;
+    cohort)
+      # shellcheck source=lib/cohort.sh
+      source "${LIB}/cohort.sh"
+      cmd_cohort "$@"
       ;;
     "" | -h | --help | help)
       usage

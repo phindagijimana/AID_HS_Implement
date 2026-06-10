@@ -35,10 +35,12 @@ cp demographics_file.csv.example input/demographics_file.csv
 | `./aid stop` | Stop background job |
 | `./aid logs` | Tail `logs/run.log` (or `logs/install.log`) |
 | `./aid status` | Install state, runtime, PID |
+| `./aid cohort` | Snakemake cohort runs (multi-subject / Slurm) |
 
 ```bash
 ./aid install --help
 ./aid start --help
+./aid cohort help
 ```
 
 ### Install options
@@ -106,6 +108,31 @@ AID-HS writes prediction reports under `output/predictions_reports/<subject>/` (
 | HPC cluster | Apptainer → Singularity | `./aid install --runtime apptainer` |
 
 Set `AID_RUNTIME` in the environment before `install` to persist in `.aid/config.env`.
+
+## Cohort runs (Snakemake / HPC)
+
+For multi-subject cohorts, use **`./aid cohort`** (wraps [`aidhs_py/`](./aidhs_py/README.md)):
+
+```bash
+./aid cohort setup
+./aid cohort subjects          # optional: discover subjects from BIDS
+./aid cohort lint              # dry-run DAG
+./aid cohort slurm             # submit Slurm driver (recommended on HPC)
+./aid cohort status            # per-subject validate/report status
+```
+
+With a per-cohort config override:
+
+```bash
+./aid cohort slurm --configfile aidhs_py/config/cohorts/cidur.yaml
+```
+
+| Use case | Command |
+|----------|---------|
+| One subject, debug | `./aid start -id sub-001 …` |
+| Cohort / Slurm production | `./aid cohort slurm` |
+
+Legacy per-subject bash jobs remain in [`jobs/cidur/`](./jobs/cidur/) during migration.
 
 ## Slurm example (HPC)
 

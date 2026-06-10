@@ -36,6 +36,19 @@ demographics_file.csv
 jobs/cidur/demographics_file.csv
 jobs/cidur/subjects_list.txt
 
+# Snakemake workflow local config and runtime
+aidhs_py/config/subjects.tsv
+aidhs_py/config/controls.tsv
+aidhs_py/config/demographics_file.csv
+aidhs_py/config/cohorts/*.yaml
+!aidhs_py/config/cohorts/*.yaml.example
+aidhs_py/.flags/
+aidhs_py/.snakemake/
+aidhs_py/logs/*
+!aidhs_py/logs/.gitkeep
+aidhs_py/report.html
+aidhs_py/dag.svg
+
 # OS / editor
 .DS_Store
 *.swp
