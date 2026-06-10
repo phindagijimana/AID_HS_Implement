@@ -14,7 +14,7 @@ if not SKIP_SEGMENTATION:
 
     rule predict:
         input:
-            **_predict_inputs,
+            unpack(_predict_inputs),
         output:
             report=PIPELINE_ROOT / "output" / "predictions_reports" / "{sid}" / "Report_{sid}.pdf",
         log:
@@ -56,7 +56,7 @@ else:
 
     rule predict_only:
         input:
-            **_predict_inputs,
+            unpack(_predict_inputs),
         output:
             report=PIPELINE_ROOT / "output" / "predictions_reports" / "{sid}" / "Report_{sid}.pdf",
         log:

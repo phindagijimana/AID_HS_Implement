@@ -38,22 +38,41 @@ Examples:
   ./aid cohort slurm --configfile aidhs_py/config/cohorts/cidur.yaml
   ./aid cohort status
 
-Requires: pip install 'snakemake>=8' snakemake-executor-plugin-slurm  (for lint/run/slurm)
+Requires: Snakemake 8+ (Python >= 3.11). See aidhs_py/scripts/setup_env.sh
 EOF
 }
+
+SNAKEMAKE_CMD=()
 
 require_aidhs_py() {
   [[ -d "${AIDHS_PY}" ]] || die "Missing ${AIDHS_PY}"
   [[ -f "${SNAKEFILE}" ]] || die "Missing ${SNAKEFILE}"
 }
 
+resolve_snakemake_cmd() {
+  SNAKEMAKE_CMD=()
+  if [[ -n "${AIDHS_SNAKEMAKE_BIN:-}" ]]; then
+    SNAKEMAKE_CMD=("${AIDHS_SNAKEMAKE_BIN}")
+    return
+  fi
+  if command -v snakemake &>/dev/null && snakemake --version &>/dev/null; then
+    SNAKEMAKE_CMD=(snakemake)
+    return
+  fi
+  local py
+  for py in python3.12 python3.11 python3; do
+    if command -v "${py}" &>/dev/null \
+      && PYTHONNOUSERSITE=0 "${py}" -m snakemake --version &>/dev/null; then
+      SNAKEMAKE_CMD=(env PYTHONNOUSERSITE=0 "${py}" -m snakemake)
+      return
+    fi
+  done
+  die "snakemake not found. Run: aidhs_py/scripts/setup_env.sh
+Or: PYTHONNOUSERSITE=0 python3.12 -m pip install --user 'snakemake>=8' snakemake-executor-plugin-slurm"
+}
+
 require_snakemake() {
-  if ! command -v snakemake &>/dev/null; then
-    die "snakemake not found. Install: pip install 'snakemake>=8' snakemake-executor-plugin-slurm"
-  fi
-  if ! snakemake --version &>/dev/null; then
-    die "snakemake is installed but broken. Reinstall: pip install --force-reinstall 'snakemake>=8'"
-  fi
+  resolve_snakemake_cmd
 }
 
 cohort_ensure_installed() {
@@ -122,7 +141,21 @@ parse_cohort_snakemake_args() {
         ;;
     esac
   done
-  [[ -f "${CONFIGFILE}" ]] || die "Config not found: ${CONFIGFILE}"
+  local resolved="${CONFIGFILE}"
+  if [[ ! "${resolved}" = /* ]]; then
+    if [[ -f "${AID_ROOT}/${resolved}" ]]; then
+      resolved="${AID_ROOT}/${resolved}"
+    elif [[ -f "${AIDHS_PY}/${resolved}" ]]; then
+      resolved="${AIDHS_PY}/${resolved}"
+    fi
+  fi
+  [[ -f "${resolved}" ]] || die "Config not found: ${CONFIGFILE}"
+  # Snakemake runs with cwd=aidhs_py.
+  if [[ "${resolved}" == "${AIDHS_PY}/"* ]]; then
+    CONFIGFILE="${resolved#${AIDHS_PY}/}"
+  else
+    CONFIGFILE="${resolved}"
+  fi
 }
 
 cmd_cohort_lint() {
@@ -132,7 +165,7 @@ cmd_cohort_lint() {
   parse_cohort_snakemake_args "$@"
   (
     cd "${AIDHS_PY}"
-    snakemake -s Snakefile -n -p -q \
+    "${SNAKEMAKE_CMD[@]}" -s Snakefile -n -p -q \
       --configfile "${CONFIGFILE}" \
       "${SNAKEMAKE_CONFIG_OVERRIDES[@]}"
   )
@@ -146,7 +179,7 @@ cmd_cohort_run() {
   log INFO "Running Snakemake locally (1 core). For HPC use: ./aid cohort slurm"
   (
     cd "${AIDHS_PY}"
-    snakemake -s Snakefile --cores 1 \
+    "${SNAKEMAKE_CMD[@]}" -s Snakefile --cores 1 \
       --configfile "${CONFIGFILE}" \
       "${SNAKEMAKE_CONFIG_OVERRIDES[@]}"
   )

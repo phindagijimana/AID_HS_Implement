@@ -22,8 +22,22 @@ cd "${AIDHS_PY}"
 
 mkdir -p logs .flags
 
-if ! command -v snakemake &>/dev/null; then
-  echo "ERROR: snakemake not found. Install: pip install 'snakemake>=8' snakemake-executor-plugin-slurm" >&2
+SNAKEMAKE_CMD=()
+if [[ -n "${AIDHS_SNAKEMAKE_BIN:-}" ]]; then
+  SNAKEMAKE_CMD=("${AIDHS_SNAKEMAKE_BIN}")
+elif command -v snakemake &>/dev/null && snakemake --version &>/dev/null; then
+  SNAKEMAKE_CMD=(snakemake)
+else
+  for py in python3.12 python3.11 python3; do
+    if command -v "${py}" &>/dev/null \
+      && PYTHONNOUSERSITE=0 "${py}" -m snakemake --version &>/dev/null; then
+      SNAKEMAKE_CMD=(env PYTHONNOUSERSITE=0 "${py}" -m snakemake)
+      break
+    fi
+  done
+fi
+if [[ ${#SNAKEMAKE_CMD[@]} -eq 0 ]]; then
+  echo "ERROR: snakemake not found. Run: aidhs_py/scripts/setup_env.sh" >&2
   exit 1
 fi
 
@@ -53,7 +67,7 @@ echo "Pipeline: ${PIPELINE_ROOT}"
 echo "Args:     ${EXTRA_ARGS[*]}"
 echo "==============================="
 
-snakemake -s Snakefile \
+"${SNAKEMAKE_CMD[@]}" -s Snakefile \
   --profile profiles/slurm \
   "${EXTRA_ARGS[@]}"
 

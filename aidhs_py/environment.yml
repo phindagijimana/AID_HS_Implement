@@ -1,0 +1,15 @@
+# Snakemake runtime for aidhs_py (Python >= 3.11 required for Snakemake 8).
+#
+#   mamba env create -f environment.yml
+#   mamba activate aidhs_py
+#   ./aid cohort lint
+#
+name: aidhs_py
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python>=3.11
+  - snakemake>=8
+  - snakemake-executor-plugin-slurm
+  - pip
